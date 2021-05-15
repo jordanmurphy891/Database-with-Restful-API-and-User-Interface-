@@ -1,0 +1,5 @@
+module.exports = {
+    database: {
+    url: "mongodb+srv://JordanMurphy:<password>@cluster0.bmd72.mongodb.net/test"
+    }
+}
