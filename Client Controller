@@ -1,0 +1,242 @@
+//lets make the link to our Model
+const client = require('../models/clientModel.js');
+
+//From what I did in my clientRoute, we need the following controllers: create(), findAll(), findOne(), update(),  
+//updateClient(), delete(), searchFname(), searchLname() and searchMobilePhone()
+
+//Begin with creating the controller that creates a new client
+// Create and Save a new client
+exports.create = (req, res) => {
+    // Validate the request
+    if(!req.body.content) {
+        return res.status(400).send({
+            message: "client content cannot be empty!"
+        });
+    }
+
+    // Create a new client (using schema)
+    const client = new client({
+        title: req.body.title,
+        fname: req.body.fname,
+        lname: req.body.lname,
+        mobilePhone: req.body.mobilePhone,
+        homePhone: req.body.homePhone,
+        email: req.body.email,
+        DOB: req.body.DOB,
+        parentName: req.body.parentName,
+        leaveMessage: req.body.leaveMessage,
+        regDate: req.body.regDate,
+        doctor: req.body.doctor,
+        refBy: req.body.refBy,
+        homeAddress: req.body.homeAddress
+    });
+
+    // Save client in the database
+    client.save()
+    .then(data => {
+        res.send(data);
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while creating the client."
+        });
+    });
+};
+
+// Retrieve and return ALL clients from the database.
+exports.findAll = (req, res) => {
+    client.find()
+    .then(client => {
+        res.send(client);
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all clients."
+        });
+    });
+};
+
+// Find a client with their clientID
+exports.findOne = (req, res) => {
+    client.findById(req.params.clientID)
+    .then(client => {
+        if(!client) {
+            return res.status(404).send({
+                message: "client not found with id " + req.params.clientID
+            });
+        }
+        res.send(client);
+    }).catch(err => {
+    if(err.kind === 'ObjectId') {
+        return res.status(404).send({
+            message: "client not found with id " + req.params.clientID
+        });
+    }
+    return res.status(500).send({
+        message: "Error retrieving client with id " + req.params.clientID
+    });
+    });
+};
+
+// Update a client identified by the Id in the request
+exports.update = (req, res) => {
+    // Validate Request
+    if(!req.body.content) {
+        return res.status(400).send({
+            message: "client content cannot be empty"
+        });
+    }
+
+    // Find the client and update it with the request body
+    client.findByIdAndUpdate(req.params.clientID, {
+        title: req.body.title,
+        fname: req.body.fname,
+        lname: req.body.lname,
+        mobilePhone: req.body.mobilePhone,
+        homePhone: req.body.homePhone,
+        email: req.body.email,
+        DOB: req.body.DOB,
+        parentName: req.body.parentName,
+        leaveMessage: req.body.leaveMessage,
+        regDate: req.body.regDate,
+        doctor: req.body.doctor,
+        refBy: req.body.refBy,
+        homeAddress: req.body.homeAddress
+    }, { $set: req.body },  
+        { new: true }) 
+    .then(client => {
+        if(!client) {
+            return res.status(404).send({
+                message: "client not found with id " + req.params.clientID
+            });
+        }
+        res.send(client);
+    }).catch(err => {
+        if(err.kind === 'ObjectId') {
+            return res.status(404).send({
+                message: "client not found with id " + req.params.clientID
+            });
+        }
+        return res.status(500).send({
+            message: "Error updating client with id " + req.params.clientID
+        });
+    });
+};
+
+// Update a client identified by the clientID in the request
+exports.updateClient = (req, res) => {
+    // Validate Request
+    if(!req.body.client) {
+        return res.status(400).send({
+            message: "client content cannot be empty"
+        });
+    }
+
+    // Find the client and update it with the request body
+    client.findByIdAndUpdate(req.params.clientID, {
+        client: req.body.client
+    },
+        { new: true }) // "new: true" return updated object
+    .then(client => {
+        if(!client) {
+            return res.status(404).send({
+                message: "client not found with id " + req.params.clientID
+            });
+        }
+        res.send(client);
+    }).catch(err => {
+        if(err.kind === 'ObjectId') {
+            return res.status(404).send({
+                message: "client not found with id " + req.params.clientID
+            });
+        }
+        return res.status(500).send({
+            message: "Error updating client with id " + req.params.clientID
+        });
+    });
+};
+
+// Delete a client with the specified clientID in the request
+exports.delete = (req, res) => {
+    client.findByIdAndRemove(req.params.clientID)
+    .then(client => {
+        if(!client) {
+            return res.status(404).send({
+                message: "client not found with id " + req.params.clientID
+            });
+        }
+        res.send({message: "client deleted successfully!"});
+    }).catch(err => {
+        if(err.kind === 'ObjectId' || err.name === 'NotFound') {
+            return res.status(404).send({
+                message: "client not found with id " + req.params.clientID
+            });
+        }
+        return res.status(500).send({
+            message: "Could not delete client with id " + req.params.clientID
+        });
+    });
+};
+    
+// Default message for / (get)
+exports.root = (req, res) => {
+    client.find()
+    .then(client => {
+        res.render('client_view',{
+            results: client
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all clients."
+        });
+    });
+};
+
+
+
+
+// search for First Names
+exports.searchFname = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching First Names: "+search)
+    client.find({ fname: new RegExp(search,"ig")})
+    .then(client => {
+        res.render('client_view',{
+            results: client
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all First Names."
+        });
+    });
+};
+
+// search for Last Names
+exports.searchLname = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching Last Names: "+search)
+    client.find({ lname: new RegExp(search,"ig")})
+    .then(client => {
+        res.render('client_view',{
+            results: client
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all Last Names."
+        });
+    });
+};
+
+// search for Mobile Phone Numbers
+exports.searchMobilePhone = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching Mobile Phone Numbers: "+search)
+    client.find({ mobilePhone: new RegExp(search,"ig")})
+    .then(client => {
+        res.render('client_view',{
+            results: client
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all Mobile Phone numbers."
+        });
+    });
+};
