@@ -1,0 +1,227 @@
+//lets make the link to our Model
+const physio = require('../models/physioModel.js');
+
+//From what I did in my physioRoute, we need the following controllers: create(), findAll(), findOne(), update(),  
+//updatePhysio(), delete(), searchFname(), searchLname() and searchMobilePhone()
+
+//Begin with creating the controller that creates a new physio
+// Create and Save a new physio
+exports.create = (req, res) => {
+    // Validate the request
+    if(!req.body.content) {
+        return res.status(400).send({
+            message: "physio content cannot be empty!"
+        });
+    }
+
+    // Create a new physio (using schema)
+    const physio = new physio({
+        title: req.body.title,
+        fname: req.body.fname,
+        lname: req.body.lname,
+        mobilePhone: req.body.mobilePhone,
+        homePhone: req.body.homePhone,
+        email: req.body.email,
+        homeAddress: req.body.homeAddress
+    });
+
+    // Save physio in the database
+    physio.save()
+    .then(data => {
+        res.send(data);
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while creating the physio."
+        });
+    });
+};
+
+// Retrieve and return ALL physios from the database.
+exports.findAll = (req, res) => {
+    physio.find()
+    .then(physio => {
+        res.send(physio);
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all physios."
+        });
+    });
+};
+
+// Find a physio with their physioID
+exports.findOne = (req, res) => {
+    physio.findById(req.params.physio)
+    .then(physio => {
+        if(!physio) {
+            return res.status(404).send({
+                message: "physio not found with id " + req.params.physioID
+            });
+        }
+        res.send(physio);
+    }).catch(err => {
+    if(err.kind === 'ObjectId') {
+        return res.status(404).send({
+            message: "physio not found with id " + req.params.physioID
+        });
+    }
+    return res.status(500).send({
+        message: "Error retrieving physio with id " + req.params.physioID
+    });
+    });
+};
+
+// Update a physio identified by the Id in the request
+exports.update = (req, res) => {
+    // Validate Request
+    if(!req.body.content) {
+        return res.status(400).send({
+            message: "physio content cannot be empty"
+        });
+    }
+
+    // Find the physio and update it with the request body
+    physio.findByIdAndUpdate(req.params.physioID, {
+        title: req.body.title,
+        fname: req.body.fname,
+        lname: req.body.lname,
+        mobilePhone: req.body.mobilePhone,
+        homePhone: req.body.homePhone,
+        email: req.body.email,
+        homeAddress: req.body.homeAddress
+    }, { $set: req.body },  
+        { new: true }) 
+    .then(physio => {
+        if(!physio) {
+            return res.status(404).send({
+                message: "physio not found with id " + req.params.physioID
+            });
+        }
+        res.send(physio);
+    }).catch(err => {
+        if(err.kind === 'ObjectId') {
+            return res.status(404).send({
+                message: "physio not found with id " + req.params.physioID
+            });
+        }
+        return res.status(500).send({
+            message: "Error updating physio with id " + req.params.physioID
+        });
+    });
+};
+
+// Update a physio identified by the physioID in the request
+exports.physio = (req, res) => {
+    // Validate Request
+    if(!req.body.physio) {
+        return res.status(400).send({
+            message: "physio content cannot be empty"
+        });
+    }
+
+    // Find the physio and update it with the request body
+    physio.findByIdAndUpdate(req.params.physioID, {
+        physio: req.body.physio
+    },
+        { new: true }) // "new: true" return updated object
+    .then(physio => {
+        if(!physio) {
+            return res.status(404).send({
+                message: "physio not found with id " + req.params.physioID
+            });
+        }
+        res.send(physio);
+    }).catch(err => {
+        if(err.kind === 'ObjectId') {
+            return res.status(404).send({
+                message: "physio not found with id " + req.params.physioID
+            });
+        }
+        return res.status(500).send({
+            message: "Error updating physio with id " + req.params.physioID
+        });
+    });
+};
+
+// Delete a physio with the specified physioID in the request
+exports.delete = (req, res) => {
+    physio.findByIdAndRemove(req.params.physioID)
+    .then(physio => {
+        if(!physio) {
+            return res.status(404).send({
+                message: "physio not found with id " + req.params.physioID
+            });
+        }
+        res.send({message: "physio deleted successfully!"});
+    }).catch(err => {
+        if(err.kind === 'ObjectId' || err.name === 'NotFound') {
+            return res.status(404).send({
+                message: "physio not found with id " + req.params.physioID
+            });
+        }
+        return res.status(500).send({
+            message: "Could not delete physio with id " + req.params.physioID
+        });
+    });
+};
+    
+// Default message for / (get)
+exports.root = (req, res) => {
+    physio.find()
+    .then(physio => {
+        res.render('physio_view',{
+            results: physio
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all physios."
+        });
+    });
+};
+
+// search for First Names
+exports.searchFname = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching First Names: "+search)
+    physio.find({ fname: new RegExp(search,"ig")})
+    .then(physio => {
+        res.render('physio_view',{
+            results: physio
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all First Names."
+        });
+    });
+};
+
+// search for Last Names
+exports.searchLname = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching Last Names: "+search)
+    physio.find({ lname: new RegExp(search,"ig")})
+    .then(physio => {
+        res.render('physio_view',{
+            results: physio
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all Last Names."
+        });
+    });
+};
+
+// search for Mobile Phone Numbers
+exports.searchMobilePhone = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching Mobile Phone Numbers: "+search)
+    physio.find({ mobilePhone: new RegExp(search,"ig")})
+    .then(physio => {
+        res.render('physio_view',{
+            results: physio
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all Mobile Phone numbers."
+        });
+    });
+};
