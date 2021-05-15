@@ -1,0 +1,217 @@
+//lets make the link to our Model
+const session = require('../models/sessionModel.js');
+
+//From what I did in my sessionRoute, we need the following controllers: create(), findAll(), findOne(), update(),  
+//updateSession(), delete(), searchDate() and searchClient(). i chose searchClient instead of searchPhysio
+//because it makes sense for a physio/receptionist to use this service more to search for their clients
+
+//Begin with creating the controller that creates a new session
+// Create and Save a new session
+exports.create = (req, res) => {
+    // Validate the request
+    if(!req.body.content) {
+        return res.status(400).send({
+            message: "session content cannot be empty!"
+        });
+    }
+
+    // Create a new session (using schema)
+    const session = new session({
+        date: req.body.date,
+        time: req.body.time,
+        client: req.body.client,
+        physio: req.body.physio,
+        fee: req.body.fee,
+        sessionNo: req.body.sessionNo,
+        duration_cancelled_noShow: req.body.duration_cancelled_noShow,
+        type: req.body.type,
+        notes: req.body.notes
+    });
+
+    // Save session in the database
+    session.save()
+    .then(data => {
+        res.send(data);
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while creating the session."
+        });
+    });
+};
+
+// Retrieve and return ALL sessions from the database.
+exports.findAll = (req, res) => {
+    session.find()
+    .then(session => {
+        res.send(session);
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all sessions."
+        });
+    });
+};
+
+// Find a session with their sessionID
+exports.findOne = (req, res) => {
+    session.findById(req.params.sessionID)
+    .then(session => {
+        if(!session) {
+            return res.status(404).send({
+                message: "session not found with id " + req.params.sessionID
+            });
+        }
+        res.send(session);
+    }).catch(err => {
+    if(err.kind === 'ObjectId') {
+        return res.status(404).send({
+            message: "session not found with id " + req.params.sessionID
+        });
+    }
+    return res.status(500).send({
+        message: "Error retrieving session with id " + req.params.sessionID
+    });
+    });
+};
+
+// Update a session identified by the Id in the request
+exports.update = (req, res) => {
+    // Validate Request
+    if(!req.body.content) {
+        return res.status(400).send({
+            message: "session content cannot be empty"
+        });
+    }
+
+    // Find the session and update it with the request body
+    session.findByIdAndUpdate(req.params.sessionID, {
+        date: req.body.date,
+        time: req.body.time,
+        client: req.body.client,
+        physio: req.body.physio,
+        fee: req.body.fee,
+        sessionNo: req.body.sessionNo,
+        duration_cancelled_noShow: req.body.duration_cancelled_noShow,
+        type: req.body.type,
+        notes: req.body.notes
+    }, { $set: req.body },  
+        { new: true }) 
+    .then(session => {
+        if(!session) {
+            return res.status(404).send({
+                message: "session not found with id " + req.params.sessionID
+            });
+        }
+        res.send(session);
+    }).catch(err => {
+        if(err.kind === 'ObjectId') {
+            return res.status(404).send({
+                message: "session not found with id " + req.params.sessionID
+            });
+        }
+        return res.status(500).send({
+            message: "Error updating session with id " + req.params.sessionID
+        });
+    });
+};
+
+// Update a session identified by the sessionID in the request
+exports.updateSession = (req, res) => {
+    // Validate Request
+    if(!req.body.session) {
+        return res.status(400).send({
+            message: "session content cannot be empty"
+        });
+    }
+
+    // Find the session and update it with the request body
+    session.findByIdAndUpdate(req.params.sessionID, {
+        session: req.body.session
+    },
+        { new: true }) // "new: true" return updated object
+    .then(session => {
+        if(!session) {
+            return res.status(404).send({
+                message: "session not found with id " + req.params.sessionID
+            });
+        }
+        res.send(session);
+    }).catch(err => {
+        if(err.kind === 'ObjectId') {
+            return res.status(404).send({
+                message: "session not found with id " + req.params.sessionID
+            });
+        }
+        return res.status(500).send({
+            message: "Error updating session with id " + req.params.sessionID
+        });
+    });
+};
+
+// Delete a session with the specified sessionID in the request
+exports.delete = (req, res) => {
+    session.findByIdAndRemove(req.params.sessionID)
+    .then(session => {
+        if(!session) {
+            return res.status(404).send({
+                message: "session not found with id " + req.params.sessionID
+            });
+        }
+        res.send({message: "session deleted successfully!"});
+    }).catch(err => {
+        if(err.kind === 'ObjectId' || err.name === 'NotFound') {
+            return res.status(404).send({
+                message: "session not found with id " + req.params.sessionID
+            });
+        }
+        return res.status(500).send({
+            message: "Could not delete session with id " + req.params.sessionID
+        });
+    });
+};
+    
+// Default message for / (get)
+exports.root = (req, res) => {
+    session.find()
+    .then(session => {
+        res.render('session_view',{
+            results: session
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all sessions."
+        });
+    });
+};
+
+// search for Dates (useful for Physio's / receptionists)
+exports.searchDate = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching Dates: "+search)
+    session.find({ date: new RegExp(search,"ig")})
+    .then(session => {
+        res.render('session_view',{
+            results: session
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all Dates."
+        });
+    });
+};
+
+// search for Clients (useful for Physio's / receptionists)
+exports.searchClient = (req, res) => {
+    var search = req.params.s;
+    console.log("Searching Last Names: "+search)
+    session.find({ client: new RegExp(search,"ig")})
+    .then(session => {
+        res.render('session_view',{
+            results: session
+        });
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "An error occurred while retrieving all Clients."
+        });
+    });
+};
+
